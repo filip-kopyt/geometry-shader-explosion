@@ -10,6 +10,7 @@ dependencies = [
     { name = "moderngl" },
     { name = "moderngl-window" },
     { name = "objloader" },
+    { name = "pyglm" },
 ]
 
 [package.metadata]
@@ -17,6 +18,7 @@ requires-dist = [
     { name = "moderngl", specifier = ">=5.12.0" },
     { name = "moderngl-window", specifier = ">=3.1.1" },
     { name = "objloader", specifier = ">=0.2.0" },
+    { name = "pyglm", specifier = ">=2.8.3" },
 ]
 
 [[package]]
