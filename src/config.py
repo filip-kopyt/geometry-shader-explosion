@@ -1,4 +1,14 @@
 WINDOW_TITLE = "Geometry Shader Explosion"
 WINDOW_SIZE = (1920, 1080)
-GL_VERSION = (3, 3)
-OBJECT_FILENAME = "cube.obj"
+FPS = 60
+
+VERT_SHADER = "resources/shaders/vertex-shader.vert"
+GEOM_SHADER = "resources/shaders/geometry-shader.geom"
+FRAG_SHADER = "resources/shaders/fragment-shader.frag"
+
+SCENE = "resources/models/car.obj"
+SCENE_FORMAT = "N3F_V3F"
+
+CAMERA_POSITION = (3.0, 3.0, 3.0)
+CAMERA_TARGET = (0.0, 0.0, 0.0)
+CAMERA_UP = (0.0, 0.0, 1.0)

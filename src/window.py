@@ -1,67 +1,79 @@
-import math
+import sys
 from pathlib import Path
-from typing import override
 
-import moderngl as mgl
-import moderngl_window as mglw
-from objloader import Obj
+import pygame
+from OpenGL.GL import *
 from pyglm import glm
 
-from config import GL_VERSION, OBJECT_FILENAME, WINDOW_SIZE, WINDOW_TITLE
-from util import load_file, root_dir
+import config as cfg
+from camera import Camera
+from loader import ObjectLoader
+from shaders import Shader
 
 
-class GeometryModel:
-    def __init__(self, ctx: mgl.Context, path: Path):
-        obj = Obj.open(path)
-        self.ctx = ctx
-        self.vbo = ctx.buffer(obj.pack(("vx vy vz nx ny nz tx ty")))
+class Window:
+    def __init__(self):
+        pygame.init()
+        display_flags = pygame.DOUBLEBUF | pygame.OPENGL
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
+        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 4)
+        pygame.display.gl_set_attribute(
+            pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE
+        )
+        self.screen = pygame.display.set_mode(cfg.WINDOW_SIZE, display_flags)
+        pygame.display.set_caption(cfg.WINDOW_TITLE)
+        self.running = True
+        self.clock = pygame.time.Clock()
+        self.time = 0
 
-    def vertex_array(self, program: mgl.Program) -> mgl.VertexArray:
-        return self.ctx.vertex_array(
-            program,
-            [(self.vbo, "3f 3f 2f", "in_position", "in_normal", "in_uv")],
+    def initialize(self):
+        self.shader = Shader(
+            cfg.VERT_SHADER,
+            cfg.GEOM_SHADER,
+            cfg.FRAG_SHADER,
         )
 
-
-class Window(mglw.WindowConfig):
-    gl_version = GL_VERSION
-    window_size = WINDOW_SIZE
-    title = WINDOW_TITLE
-    resource_dir = root_dir() / "resources"
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.shader_program = self._load_shader_program()
-        self.model = self._load_model(OBJECT_FILENAME)
-        self.vao = self.model.vertex_array(self.shader_program)
-
-    def _load_shader_program(self) -> mgl.Program:
-        shaders_path = self.resource_dir / "shaders"
-        return self.ctx.program(
-            vertex_shader=load_file(shaders_path / "vertex-shader.vert"),
-            # geometry_shader=load_file(shaders_path / "geometry-shader.geom"),
-            fragment_shader=load_file(shaders_path / "fragment-shader.frag"),
+        self.camera = Camera(
+            position=glm.vec3(*cfg.CAMERA_POSITION),
+            target=glm.vec3(*cfg.CAMERA_TARGET),
+            up=glm.vec3(*cfg.CAMERA_UP),
+            aspect_ratio=cfg.WINDOW_SIZE[0] / cfg.WINDOW_SIZE[1],
         )
 
-    def _load_model(self, filename: str) -> GeometryModel:
-        objects_path = self.resource_dir / "objects"
-        return GeometryModel(self.ctx, objects_path / filename)
+        self.scene = ObjectLoader(cfg.SCENE, cfg.SCENE_FORMAT)
 
-    def get_camera_matrices(self, time: float) -> tuple[glm.mat4, glm.mat4]:
-        eye = (5.0 * math.sin(time), 5.0 * math.cos(time), 3.0)
-        proj = glm.perspective(math.radians(60.0), self.wnd.aspect_ratio, 1.0, 1000.0)
-        look = glm.lookAt(eye, (0, 0, 0), (0.0, 0.0, 1.0))
-        return proj, look
+        glEnable(GL_DEPTH_TEST)
+        glDisable(GL_CULL_FACE)
 
-    @override
-    def on_render(self, time: float, frame_time: float) -> None:
-        self.ctx.clear(0.25, 0.25, 0.25, 0.25)
+    def update(self):
+        glClearColor(0.25, 0.25, 0.25, 1.0)
+        glClear(GL_COLOR_BUFFER_BIT)
+        glClear(GL_DEPTH_BUFFER_BIT)
+        glUseProgram(self.shader.program)
 
-        proj, view = self.get_camera_matrices(time)
+        self.camera.upload_uniforms(self.shader.program)
+        self.scene.upload_uniforms(self.shader.program)
+        self.scene.render()
 
-        self.shader_program["projection_matrix"].write(proj)
-        self.shader_program["model_matrix"].write(glm.mat4(1.0))
-        self.shader_program["view_matrix"].write(view)
+    def cleanup(self):
+        glDeleteProgram(self.shader.program)
+        self.scene.close()
 
-        self.vao.render(mgl.TRIANGLES)
+    def run(self):
+        self.initialize()
+
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+
+            self.delta_time = self.clock.get_time() / 1000
+            self.time += self.delta_time
+            self.update()
+
+            pygame.display.flip()
+            self.clock.tick(cfg.FPS)
+
+        self.cleanup()
+        pygame.quit()
+        sys.exit()
