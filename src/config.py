@@ -10,5 +10,5 @@ SCENE = "resources/models/car.obj"
 SCENE_FORMAT = "N3F_V3F"
 
 CAMERA_POSITION = (3.0, 3.0, 3.0)
-CAMERA_TARGET = (0.0, 0.0, 0.0)
+CAMERA_FRONT = (-1.0, -1.0, -1.0)
 CAMERA_UP = (0.0, 0.0, 1.0)

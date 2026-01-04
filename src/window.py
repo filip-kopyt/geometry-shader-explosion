@@ -25,6 +25,27 @@ class Window:
         self._clock = pygame.time.Clock()
         self._time = 0
 
+    def run(self):
+        self._initialize()
+
+        while self._running:
+            self._handle_input()
+
+            delta_time = self._clock.get_time() / 1000
+            self._time += delta_time
+            self._update()
+
+            pygame.display.flip()
+            self._clock.tick(cfg.FPS)
+
+        self.cleanup()
+        pygame.quit()
+        sys.exit()
+
+    def cleanup(self):
+        glDeleteProgram(self._shader.program)
+        self._scene.close()
+
     def _initialize(self):
         self._shader = Shader(
             cfg.VERT_SHADER,
@@ -34,7 +55,7 @@ class Window:
 
         self._camera = Camera(
             position=glm.vec3(*cfg.CAMERA_POSITION),
-            target=glm.vec3(*cfg.CAMERA_TARGET),
+            front=glm.vec3(*cfg.CAMERA_FRONT),
             up=glm.vec3(*cfg.CAMERA_UP),
             aspect_ratio=cfg.WINDOW_SIZE[0] / cfg.WINDOW_SIZE[1],
         )
@@ -52,25 +73,21 @@ class Window:
         self._camera.upload_uniforms(self._shader.program)
         self._scene.render(self._shader.program)
 
-    def cleanup(self):
-        glDeleteProgram(self._shader.program)
-        self._scene.close()
-
-    def run(self):
-        self._initialize()
-
-        while self._running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+    def _handle_input(self):
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
                     self._running = False
 
-            delta_time = self._clock.get_time() / 1000
-            self._time += delta_time
-            self._update()
+            if event.type == pygame.QUIT:
+                self._running = False
 
-            pygame.display.flip()
-            self._clock.tick(cfg.FPS)
-
-        self.cleanup()
-        pygame.quit()
-        sys.exit()
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w]:
+            self._camera.move_forward()
+        if keys[pygame.K_s]:
+            self._camera.move_backward()
+        if keys[pygame.K_a]:
+            self._camera.move_left()
+        if keys[pygame.K_d]:
+            self._camera.move_right()

@@ -8,22 +8,22 @@ class Camera:
     def __init__(
         self,
         position,
-        target,
+        front,
         up,
-        speed=1.0,
+        speed=0.05,
         fov=math.radians(60.0),
         aspect_ratio=1.0,
         near=1.0,
         far=100.0,
     ):
-        self.position = position
-        self.target = target
-        self.up = up
-        self.speed = speed
-        self.fov = fov
-        self.aspect_ratio = aspect_ratio
-        self.near = near
-        self.far = far
+        self._position = position
+        self._front = front
+        self._up = up
+        self._speed = speed
+        self._fov = fov
+        self._aspect_ratio = aspect_ratio
+        self._near = near
+        self._far = far
 
     def upload_uniforms(self, program):
         view = self._view_matrix()
@@ -38,16 +38,22 @@ class Camera:
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(identity))
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
         glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm.value_ptr(proj))
-        glUniform3fv(camera_loc, 1, glm.value_ptr(self.position))
+        glUniform3fv(camera_loc, 1, glm.value_ptr(self._position))
 
-    def orbit(self, radius, time):
-        _, _, cam_z = self.position
-        cam_x = math.sin(time) * radius
-        cam_y = math.cos(time) * radius
-        self.position = (cam_x, cam_y, cam_z)
+    def move_forward(self):
+        self._position += self._front * self._speed
+
+    def move_backward(self):
+        self._position -= self._front * self._speed
+
+    def move_right(self):
+        self._position += glm.normalize(glm.cross(self._front, self._up)) * self._speed
+
+    def move_left(self):
+        self._position -= glm.normalize(glm.cross(self._front, self._up)) * self._speed
 
     def _view_matrix(self):
-        return glm.lookAt(self.position, self.target, self.up)
+        return glm.lookAt(self._position, self._position + self._front, self._up)
 
     def _proj_matrix(self):
-        return glm.perspective(self.fov, self.aspect_ratio, self.near, self.far)
+        return glm.perspective(self._fov, self._aspect_ratio, self._near, self._far)
