@@ -24,11 +24,11 @@ struct Light {
     vec3 specular;
 };
 
-const Light light = Light(
-    vec3(3.0, 3.0, 3.0),
+Light light = Light(
+    camera_position,
     vec3(0.2, 0.2, 0.2),
     vec3(1.0, 1.0, 1.0),
-    vec3(0.3, 0.3, 0.3)
+    vec3(0.2, 0.2, 0.2)
 );
 
 void main()

@@ -10,7 +10,8 @@ class Camera:
         position,
         front,
         up,
-        speed=0.05,
+        speed=2.0,
+        sensitivity=0.1,
         fov=math.radians(60.0),
         aspect_ratio=1.0,
         near=1.0,
@@ -20,10 +21,13 @@ class Camera:
         self._front = front
         self._up = up
         self._speed = speed
+        self._sensitivity = sensitivity
         self._fov = fov
         self._aspect_ratio = aspect_ratio
         self._near = near
         self._far = far
+
+        self._first_mouse = True
 
     def upload_uniforms(self, program):
         view = self._view_matrix()
@@ -40,17 +44,43 @@ class Camera:
         glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm.value_ptr(proj))
         glUniform3fv(camera_loc, 1, glm.value_ptr(self._position))
 
-    def move_forward(self):
-        self._position += self._front * self._speed
+    def move_forward(self, delta_time):
+        self._position += self._front * self._speed * delta_time
 
-    def move_backward(self):
-        self._position -= self._front * self._speed
+    def move_backward(self, delta_time):
+        self._position -= self._front * self._speed * delta_time
 
-    def move_right(self):
-        self._position += glm.normalize(glm.cross(self._front, self._up)) * self._speed
+    def move_right(self, delta_time):
+        self._position += (
+            glm.normalize(glm.cross(self._front, self._up)) * self._speed * delta_time
+        )
 
-    def move_left(self):
-        self._position -= glm.normalize(glm.cross(self._front, self._up)) * self._speed
+    def move_left(self, delta_time):
+        self._position -= (
+            glm.normalize(glm.cross(self._front, self._up)) * self._speed * delta_time
+        )
+
+    def mouse_callback(self, dx, dy):
+        if self._first_mouse:
+            fx, fy, fz = self._front
+            self._yaw = math.degrees(math.atan2(fz, fx))
+            self._pitch = math.degrees(math.atan2(fy, math.sqrt(fx**2 + fz**2)))
+            self._first_mouse = False
+
+        dx *= self._sensitivity
+        dy *= self._sensitivity
+
+        self._yaw += dx
+        self._pitch -= dy
+
+        self._pitch = max(min(self._pitch, 89.0), -89.0)
+
+        direction = glm.vec3(
+            math.cos(math.radians(self._yaw)) * math.cos(math.radians(self._pitch)),
+            math.sin(math.radians(self._pitch)),
+            math.sin(math.radians(self._yaw)) * math.cos(math.radians(self._pitch)),
+        )
+        self._front = glm.normalize(direction)
 
     def _view_matrix(self):
         return glm.lookAt(self._position, self._position + self._front, self._up)

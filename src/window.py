@@ -31,8 +31,8 @@ class Window:
         while self._running:
             self._handle_input()
 
-            delta_time = self._clock.get_time() / 1000
-            self._time += delta_time
+            self._delta_time = self._clock.get_time() / 1000
+            self._time += self._delta_time
             self._update()
 
             pygame.display.flip()
@@ -63,6 +63,7 @@ class Window:
         self._scene = ObjectLoader(cfg.SCENE, cfg.SCENE_FORMAT)
 
         glEnable(GL_DEPTH_TEST)
+        pygame.event.set_grab(True)
 
     def _update(self):
         glClearColor(0.25, 0.25, 0.25, 1.0)
@@ -84,10 +85,17 @@ class Window:
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
-            self._camera.move_forward()
+            self._camera.move_forward(self._delta_time)
         if keys[pygame.K_s]:
-            self._camera.move_backward()
+            self._camera.move_backward(self._delta_time)
         if keys[pygame.K_a]:
-            self._camera.move_left()
+            self._camera.move_left(self._delta_time)
         if keys[pygame.K_d]:
-            self._camera.move_right()
+            self._camera.move_right(self._delta_time)
+
+        mouse_buttons = pygame.mouse.get_pressed()
+        if mouse_buttons[0]:
+            dx, dy = pygame.mouse.get_rel()
+            self._camera.mouse_callback(dx, dy)
+        else:
+            pygame.mouse.get_rel()
